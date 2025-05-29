@@ -1,0 +1,48 @@
+{
+  "name": "jiboia",
+  "version": "0.1.0",
+  "description": "Developer tool to sync frontend and backend via OpenAPI-generated types and clients",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint . --ext .ts",
+    "start": "node dist/index.js"
+  },
+  "bin": {
+    "jiboia": "./dist/index.js"
+  },
+  "keywords": [
+    "openapi",
+    "typescript",
+    "codegen",
+    "frontend-backend-sync",
+    "cli",
+    "developer-tools"
+  ],
+  "author": "Tiago Aguiar",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.0.0",
+    "ora": "^8.0.0",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "@types/glob": "^8.1.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.4.0",
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.28.0",
+    "globals": "^16.2.0",
+    "js-yaml": "^4.1.0",
+    "openapi-typescript": "^7.8.0",
+    "typescript": "^5.4.0",
+    "typescript-eslint": "^8.33.0"
+  }
+}
