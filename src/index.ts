@@ -78,6 +78,48 @@ function isOpenApiSpec(yamlStr: string): boolean {
   }
 }
 
+/**
+ * Normalizes a path string into a valid TypeScript identifier
+ * - Removes leading slash
+ * - Replaces internal slashes with underscores
+ * - Replaces hyphens with underscores
+ * - Removes curly braces from path parameters
+ */
+function normalizePathKey(path: string): string {
+  return path
+    .replace(/^\//, '') // remove leading slash
+    .replace(/\//g, '_') // replace internal slashes
+    .replace(/-/g, '_') // replace hyphens with underscores
+    .replace(/{.*?}/g, match => match.slice(1, -1)); // remove {} from path params
+}
+
+/**
+ * Extracts all paths from an OpenAPI schema file
+ */
+function extractPathsFromSchema(filePath: string): Record<string, string> {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const doc = yaml.parse(content);
+
+    if (!doc || !doc.paths) {
+      return {};
+    }
+
+    const map: Record<string, string> = {};
+
+    // Extract paths from the OpenAPI schema
+    Object.keys(doc.paths).forEach(route => {
+      const key = normalizePathKey(route);
+      map[key] = route;
+    });
+
+    return map;
+  } catch (error) {
+    console.error('Error extracting paths:', error);
+    return {};
+  }
+}
+
 async function generateTypes() {
   const configPath = path.resolve("jiboia.config.js");
   if (!fs.existsSync(configPath)) {
@@ -106,6 +148,8 @@ async function generateTypes() {
   log(green("✅ Loaded config"));
   log(`📘 Parsed ${yamlFiles.length} .yaml/.yml files`);
 
+  let allPaths: Record<string, string> = {};
+
   for (const file of yamlFiles) {
     if (ignore.includes(path.basename(file))) continue;
 
@@ -127,12 +171,28 @@ async function generateTypes() {
       execSync(`npx openapi-typescript "${inputPath}" -o "${outputPath}"`, {
         stdio: "inherit",
       });
+
+      // Extract paths from this schema file
+      const foundPaths = extractPathsFromSchema(inputPath);
+      allPaths = { ...allPaths, ...foundPaths };
     } catch (error) {
       log(red(`❌ Failed to run openapi-typescript. Please install it by running:`));
       log(red(`   npm install openapi-typescript --save-dev`));
       process.exit(1);
     }
   }
+
+  // Create paths.ts
+  const pathsFile = `// Auto-generated route map
+export const paths = {
+${Object.entries(allPaths)
+      .map(([key, val]) => `  ${key}: "${val}",`)
+      .join('\n')}
+} as const;
+`;
+
+  fs.writeFileSync(path.join(outputDir, 'paths.ts'), pathsFile);
+  log(green('✅ paths.ts generated'));
 
   log(green("✅ Done"));
 }

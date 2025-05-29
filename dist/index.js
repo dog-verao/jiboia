@@ -72,6 +72,43 @@ function isOpenApiSpec(yamlStr) {
         return false;
     }
 }
+/**
+ * Normalizes a path string into a valid TypeScript identifier
+ * - Removes leading slash
+ * - Replaces internal slashes with underscores
+ * - Replaces hyphens with underscores
+ * - Removes curly braces from path parameters
+ */
+function normalizePathKey(path) {
+    return path
+        .replace(/^\//, '') // remove leading slash
+        .replace(/\//g, '_') // replace internal slashes
+        .replace(/-/g, '_') // replace hyphens with underscores
+        .replace(/{.*?}/g, match => match.slice(1, -1)); // remove {} from path params
+}
+/**
+ * Extracts all paths from an OpenAPI schema file
+ */
+function extractPathsFromSchema(filePath) {
+    try {
+        const content = fs_1.default.readFileSync(filePath, 'utf8');
+        const doc = yaml_1.default.parse(content);
+        if (!doc || !doc.paths) {
+            return {};
+        }
+        const map = {};
+        // Extract paths from the OpenAPI schema
+        Object.keys(doc.paths).forEach(route => {
+            const key = normalizePathKey(route);
+            map[key] = route;
+        });
+        return map;
+    }
+    catch (error) {
+        console.error('Error extracting paths:', error);
+        return {};
+    }
+}
 async function generateTypes() {
     const configPath = path_1.default.resolve("jiboia.config.js");
     if (!fs_1.default.existsSync(configPath)) {
@@ -93,6 +130,7 @@ async function generateTypes() {
     fs_1.default.mkdirSync(outputDir, { recursive: true });
     log(green("✅ Loaded config"));
     log(`📘 Parsed ${yamlFiles.length} .yaml/.yml files`);
+    let allPaths = {};
     for (const file of yamlFiles) {
         if (ignore.includes(path_1.default.basename(file)))
             continue;
@@ -110,6 +148,9 @@ async function generateTypes() {
             (0, child_process_1.execSync)(`npx openapi-typescript "${inputPath}" -o "${outputPath}"`, {
                 stdio: "inherit",
             });
+            // Extract paths from this schema file
+            const foundPaths = extractPathsFromSchema(inputPath);
+            allPaths = { ...allPaths, ...foundPaths };
         }
         catch (error) {
             log(red(`❌ Failed to run openapi-typescript. Please install it by running:`));
@@ -117,6 +158,16 @@ async function generateTypes() {
             process.exit(1);
         }
     }
+    // Create paths.ts
+    const pathsFile = `// Auto-generated route map
+export const paths = {
+${Object.entries(allPaths)
+        .map(([key, val]) => `  ${key}: "${val}",`)
+        .join('\n')}
+} as const;
+`;
+    fs_1.default.writeFileSync(path_1.default.join(outputDir, 'paths.ts'), pathsFile);
+    log(green('✅ paths.ts generated'));
     log(green("✅ Done"));
 }
 // --- Main Entry ---

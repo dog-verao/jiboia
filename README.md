@@ -133,3 +133,26 @@ Ensure your YAML files follow OpenAPI 3.x format, or the type generation will fa
 ## 🐍 Why "Jiboia"?
 Jiboia means boa constrictor in Portuguese — like the snake, this tool wraps around your API schema and keeps your types safe and tight. 🐍
 
+## Local Testing:
+npm run build
+npm link
+
+### backend
+npm install --save-dev openapi-typescript
+npm link jiboia
+npx jiboia init --backend
+
+```js
+module.exports = {
+  inputDir: "./apiv2/schemas",
+  outputDir: "./generated-types",
+  ignore: ["common.yaml"],
+  emitClients: false,
+  client: "fetch"
+};
+````
+npx jiboia generate
+
+
+### frontend
+npx jiboia init --frontend
